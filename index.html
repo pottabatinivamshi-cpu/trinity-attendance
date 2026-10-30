@@ -10,7 +10,7 @@
 <title>Trinity Attendance Letters</title>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="style.css?v=202610301554">
+<link rel="stylesheet" href="style.css?v=202610301611">
 </head>
 <body>
 <div class="wrap">
@@ -154,6 +154,17 @@
       <div id="clearconfirm" class="confirm" hidden>Remove everyone from the table?
         <button type="button" id="clearyes" class="rm">Remove all</button><button type="button" id="clearno" class="rm">Keep them</button></div>
       <div class="field"><label for="f-order">Order in the table</label><select id="f-order"></select></div>
+      <div class="timing">
+        <label class="switch"><input type="checkbox" id="f-timing"> <span>Add a Timing column</span></label>
+        <div id="ti-controls" class="view" hidden>
+          <div class="two">
+            <div class="field"><label for="ti-from">Everyone from</label><select id="ti-from"></select></div>
+            <div class="field"><label for="ti-to">To</label><select id="ti-to"></select></div>
+          </div>
+          <span class="hint">College hours are 8:00 AM to 6:00 PM. Tap a student's timing in the table to change just theirs, or tick a few students and set them together. The letter then says "attendance" instead of "full-day attendance" and points to the timings in the table.</span>
+          <div class="actions"><button type="button" class="ok" id="ti-sel" disabled>Tick students to set their timing together</button><button type="button" class="rm" id="ti-reset">Reset everyone to this timing</button></div>
+        </div>
+      </div>
       <div id="tablewrap"></div>
     </div>
 
@@ -284,6 +295,19 @@
   </form>
 </div>
 
+<!-- Timing for one student or a ticked group -->
+<div class="overlay" id="tisheet" hidden>
+  <form class="sheet" id="ti-form" role="dialog" aria-modal="true" aria-labelledby="ti-title">
+    <h2 id="ti-title">Timing</h2>
+    <div class="two">
+      <div class="field"><label for="ti-s-from">From</label><select id="ti-s-from"></select></div>
+      <div class="field"><label for="ti-s-to">To</label><select id="ti-s-to"></select></div>
+    </div>
+    <p class="cf-st" id="ti-st" role="status"></p>
+    <div class="btns"><button type="button" id="ti-default">Use the default</button><button type="submit" class="primary">Save timing</button></div>
+  </form>
+</div>
+
 <!-- Generic confirmation for things that can't be undone -->
 <div class="overlay" id="asksheet" hidden>
   <div class="sheet" role="alertdialog" aria-modal="true" aria-labelledby="ask-title" aria-describedby="ask-body">
@@ -317,13 +341,14 @@
   <div class="bar-in"><span class="bar-count"><b id="barn">0</b> on the <span id="barbook">Trinity</span> letter</span><button type="button" class="primary" id="golet">Open letter</button></div>
 </div>
 
-<script src="config.js?v=202610301554"></script>
+<script src="config.js?v=202610301611"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
 <script src="vendor/jspdf.plugin.autotable.min.js"></script>
 <script src="vendor/qrcode.js"></script>
-<script src="js/common.js?v=202610301554"></script>
-<script src="js/letter.js?v=202610301554"></script>
-<script src="js/app.js?v=202610301554"></script>
-<script src="js/records.js?v=202610301554"></script>
+<script src="js/common.js?v=202610301611"></script>
+<script src="js/letter.js?v=202610301611"></script>
+<script src="js/app.js?v=202610301611"></script>
+<script src="js/records.js?v=202610301611"></script>
+<script src="js/timing.js?v=202610301611"></script>
 </body>
 </html>

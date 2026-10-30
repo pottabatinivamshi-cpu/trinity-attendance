@@ -1,6 +1,6 @@
 // Builds the attendance letter PDF. Shared by the page and the node test.
 // buildLetter(jsPDF, autoTable, { letterhead, to, subject, greeting, body, note, rows })
-// rows: [[name, branch, roll, sap, division, year], ...]
+// rows: [[name, branch, roll, sap, division, year], ...], with an optional 7th Timing column.
 function buildLetter(jsPDF, autoTable, o) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const W = 210, H = 297, L = 18, R = 18, TW = W - L - R;
@@ -23,15 +23,18 @@ function buildLetter(jsPDF, autoTable, o) {
   if (o.body.trim()) para(o.body.trim(), "normal", 4);
   if (o.note.trim()) para("NOTE: " + o.note.trim(), "bold", 3);
 
+  const timed = o.rows.some(r => r.length > 6);
   autoTable(doc, {
     startY: y + 1,
     margin: { left: L, right: R, top: 16, bottom: 16 },
-    head: [["Name", "Branch", "Roll No.", "Student ID", "Division", "Year"]],
+    head: [timed ? ["Name", "Branch", "Roll No.", "Student ID", "Division", "Year", "Timing"] : ["Name", "Branch", "Roll No.", "Student ID", "Division", "Year"]],
     body: o.rows,
     theme: "grid",
-    styles: { font: "helvetica", fontSize: 7.6, textColor: 20, lineColor: 30, lineWidth: 0.2, cellPadding: { top: 1.3, bottom: 1.3, left: 1.6, right: 1.6 } },
+    styles: { font: "helvetica", fontSize: timed ? 7.2 : 7.6, textColor: 20, lineColor: 30, lineWidth: 0.2, cellPadding: { top: 1.3, bottom: 1.3, left: 1.6, right: 1.6 } },
     headStyles: { fillColor: 255, textColor: 0, fontStyle: "bold", fontSize: 8 },
-    columnStyles: { 0: { cellWidth: 52 }, 1: { cellWidth: 23 }, 2: { cellWidth: 22 }, 3: { cellWidth: 33 }, 4: { cellWidth: 24 }, 5: { cellWidth: 20 } },
+    columnStyles: timed
+      ? { 0: { cellWidth: 43 }, 1: { cellWidth: 18 }, 2: { cellWidth: 17 }, 3: { cellWidth: 28 }, 4: { cellWidth: 18 }, 5: { cellWidth: 12 }, 6: { cellWidth: 38 } }
+      : { 0: { cellWidth: 52 }, 1: { cellWidth: 23 }, 2: { cellWidth: 22 }, 3: { cellWidth: 33 }, 4: { cellWidth: 24 }, 5: { cellWidth: 20 } },
     showHead: "everyPage",
   });
 

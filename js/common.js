@@ -99,17 +99,18 @@ const HEADER_TESTS = {
   s: /sap|student\s*id|^id$|^id\s*no/i,
   d: /div|batch/i,
   y: /^year$|^class$|year\s*of\s*study|^yr$/i,
+  t: /time|timing|slot/i,
 };
 // grid: array of rows (arrays of cells). Section headings are rows with only the first cell filled, in capitals.
 function peopleFromGrid(grid, defaultSection) {
   grid = grid.map(r => (r || []).map(clean));
-  let cols = { n: 0, b: 1, r: 2, s: 3, d: 4, y: 5 }, hasYear = false, start = 0;
+  let cols = { n: 0, b: 1, r: 2, s: 3, d: 4, y: 5, t: -1 }, hasYear = false, start = 0;
   for (let i = 0; i < Math.min(grid.length, 15); i++) {
     const r = grid[i]; if (!r.some(Boolean)) continue;
     if (r.some(c => HEADER_TESTS.n.test(c))) {
       const found = {};
       r.forEach((c, j) => { for (const k in HEADER_TESTS) if (found[k] == null && c && HEADER_TESTS[k].test(c)) { found[k] = j; break; } });
-      cols = { n: found.n ?? 0, b: found.b ?? -1, r: found.r ?? -1, s: found.s ?? -1, d: found.d ?? -1, y: found.y ?? -1 };
+      cols = { n: found.n ?? 0, b: found.b ?? -1, r: found.r ?? -1, s: found.s ?? -1, d: found.d ?? -1, y: found.y ?? -1, t: found.t ?? -1 };
       hasYear = found.y != null; start = i + 1;
     }
     break;
@@ -129,7 +130,7 @@ function peopleFromGrid(grid, defaultSection) {
     const name = niceName(at(r, "n")); if (!name) continue;
     const sap = clean(at(r, "s")).replace(/\s/g, "");
     const p = { section, n: name, b: normBranch(at(r, "b")), r: niceRoll(at(r, "r")), s: sap,
-      d: (v => v === v.toLowerCase() ? v.toUpperCase() : v)(clean(at(r, "d"))), y: normYear(at(r, "y")) };
+      d: (v => v === v.toLowerCase() ? v.toUpperCase() : v)(clean(at(r, "d"))), y: normYear(at(r, "y")), t: clean(at(r, "t")) };
     if (!p.b && sap) p.b = branchFromSap(sap);
     const key = sap || "";
     const prev = key ? bySap.get(key) : byName.get(name.toLowerCase());

@@ -10,6 +10,7 @@ Pick people from a list or upload a file, add the subject and attendance dates, 
 - **Just for today's letter** (Trinity Team, core only): add people who aren't on the list straight onto the Trinity letter. They're kept on that phone only, can be edited or removed, and are cleared at midnight. Nothing is saved to the database.
 - **IDPT Sports**: captains, co-captains and players, branch by branch, with its own letter. **Add a whole group** adds, say, every captain and co-captain at once.
 - **Events**: core makes any event by name. Each event works like IDPT Sports, with its own list, QR sign-up (`join.html?e=<event>`) and letter.
+- **Timing column** (any letter): switch it on to add a Timing column. Set one slot for everyone (8:00 AM to 6:00 PM, half-hour steps), then change single students or a ticked group. A Quick letter file with a Time / Timing / Slot column fills it in.
 - **Quick letter**: upload any CSV or Excel file with one student per row, add the subject, and download. Nothing is saved to the lists.
 - **Records** (top right, core only): every downloaded letter, by attendance date. Search a student to see every day they got attendance, see who was on each letter, download it again, or delete the record.
 

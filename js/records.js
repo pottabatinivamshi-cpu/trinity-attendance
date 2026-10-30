@@ -112,7 +112,7 @@ function renderRecords() {
       `<div class="pmeta">${r.people_count} ${r.people_count === 1 ? "student" : "students"} · downloaded ${esc(when)}${r.by_name ? " by " + esc(r.by_name) : ""}</div>` +
       (m.hits.length ? `<div class="hit">Includes ${esc(m.hits.slice(0, 5).join(", "))}${m.hits.length > 5 ? ` and ${m.hits.length - 5} more` : ""}</div>` : "") +
       `<div class="actions"><button type="button" class="rm" data-rshow>${isOpen ? "Hide names" : "Show names"}</button><button type="button" class="rm" data-rdl>Download again</button><button type="button" class="rm dangerline" data-rdel>Delete</button></div>` +
-      (isOpen ? `<div class="tw"><table><thead><tr><th>Name</th><th>Branch</th><th>Roll No.</th><th>Student ID</th><th>Division</th><th>Year</th></tr></thead><tbody>` +
+      (isOpen ? `<div class="tw"><table><thead><tr><th>Name</th><th>Branch</th><th>Roll No.</th><th>Student ID</th><th>Division</th><th>Year</th>${r.people.some(p => p.length > 6) ? "<th>Timing</th>" : ""}</tr></thead><tbody>` +
         r.people.map(p => `<tr><td>${esc(p[0])}</td>${p.slice(1).map(c => `<td class="m">${esc(c)}</td>`).join("")}</tr>`).join("") + `</tbody></table></div>` : "") +
       `</article>`;
   }).join("") + `</section>`).join("");

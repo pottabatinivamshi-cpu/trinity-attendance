@@ -644,11 +644,12 @@ async function loadQuick(f) {
     const { grid, sheet } = await readTableFile(f);
     const res = peopleFromGrid(grid, "");
     if (!res.people.length) { $("qk-st").textContent = "No students found in that file. Each row needs at least a name."; return; }
-    BOOKS.quick.sel = res.people.map((p, i) => ({ id: "q" + i, n: p.n, b: p.b, r: p.r, s: p.s, d: p.d, fy: p.y, ok: p.ok }));
+    BOOKS.quick.sel = res.people.map((p, i) => ({ id: "q" + i, n: p.n, b: p.b, r: p.r, s: p.s, d: p.d, fy: p.y, ft: p.t || "", ok: p.ok }));
+    const QT = timingOf("quick"); QT.times = {}; if (res.people.some(p => p.t)) QT.on = true; saveTiming("quick");
     quickInfo = { file: f.name, sheet, dupes: res.dupes, hasYear: res.hasYear, total: res.people.length };
     if (res.hasYear) $("qk-year").value = "file"; else if ($("qk-year").value === "file") $("qk-year").value = "sap";
     store.set("att3.quick.info", quickInfo); applyQuickYear(); saveSel("quick");
-    $("qk-st").textContent = ""; renderQuickInfo(); renderTable(); renderCounts();
+    $("qk-st").textContent = ""; renderQuickInfo(); renderTimingControls(); renderTable(); renderCounts();
   } catch (e) { $("qk-st").textContent = "Couldn't read that file. Use a .csv or .xlsx file (in Google Sheets: File → Download → CSV)."; }
 }
 function applyQuickYear() {
@@ -683,8 +684,13 @@ function renderTable() {
     $("tablewrap").innerHTML = `<p class="empty">${book === "quick" ? "Upload a CSV or Excel file above to fill the table." : "Nobody added yet. Go to the list and tap + next to a name, or use Select all."}</p>`; return;
   }
   const yrs = {}; L.forEach(p => yrs[p.y || "—"] = (yrs[p.y || "—"] || 0) + 1);
-  $("tablewrap").innerHTML = `<p class="empty" style="margin:0 0 8px">${Object.entries(yrs).map(([y, n]) => `${n} ${y}`).join(" · ")}</p><div class="tw"><table><thead><tr><th>Name</th><th>Branch</th><th>Roll No.</th><th>Student ID</th><th>Division</th><th>Year</th><th></th></tr></thead><tbody>` +
-    L.map(p => `<tr${p.ok ? "" : ' class="miss"'}><td>${esc(p.n)}${p.tmp ? ' <span class="tag">today only</span>' : ""}</td><td class="m">${esc(p.b || "—")}</td><td class="m">${esc(p.r || "—")}</td><td class="m">${esc(p.s || "—")}</td><td class="m">${esc(p.d || "—")}</td><td class="m">${esc(p.y || "—")}</td><td class="x"><button type="button" class="rm" data-rm="${esc(p.id)}" aria-label="Remove ${esc(p.n)} from the letter">Remove</button></td></tr>`).join("") + `</tbody></table></div>`;
+  const T = timingOf(bk()), timed = T.on;
+  $("tablewrap").innerHTML = `<p class="empty" style="margin:0 0 8px">${Object.entries(yrs).map(([y, n]) => `${n} ${y}`).join(" · ")}</p><div class="tw"><table><thead><tr>${timed ? '<th class="x"><span class="sr">Select</span></th>' : ""}<th>Name</th>${timed ? "<th>Timing</th>" : ""}<th>Branch</th><th>Roll No.</th><th>Student ID</th><th>Division</th><th>Year</th><th></th></tr></thead><tbody>` +
+    L.map(p => { const tm = timed ? timeFor(bk(), p) : null;
+      return `<tr${p.ok ? "" : ' class="miss"'}>${timed ? `<td class="x"><input type="checkbox" class="tick" data-tick="${esc(p.id)}"${ticked.has(p.id) ? " checked" : ""} aria-label="Select ${esc(p.n)}"></td>` : ""}<td>${esc(p.n)}${p.tmp ? ' <span class="tag">today only</span>' : ""}</td>` +
+        (timed ? `<td><button type="button" class="tbtn${tm.own ? " own" : ""}" data-time="${esc(p.id)}" aria-label="Change timing for ${esc(p.n)}">${esc(tm.text)}</button></td>` : "") +
+        `<td class="m">${esc(p.b || "—")}</td><td class="m">${esc(p.r || "—")}</td><td class="m">${esc(p.s || "—")}</td><td class="m">${esc(p.d || "—")}</td><td class="m">${esc(p.y || "—")}</td>` +
+        `<td class="x"><button type="button" class="rm" data-rm="${esc(p.id)}" aria-label="Remove ${esc(p.n)} from the letter">Remove</button></td></tr>`; }).join("") + `</tbody></table></div>`;
 }
 $("tablewrap").addEventListener("click", e => {
   const b = e.target.closest("[data-rm]"); if (!b) return; const B = BOOKS[bk()];
@@ -724,8 +730,10 @@ $("dl").addEventListener("click", async () => {
   if (!B.F.subject.trim()) { st.textContent = "Write a subject for the letter first."; $("f-subject").focus(); return; }
   if (!B.F.from) { st.textContent = "Pick the attendance date first. It's saved in Records."; $("f-from").focus(); return; }
   const until = B.F.until && B.F.until >= B.F.from ? B.F.until : B.F.from;
-  const body = fillDates(B.F.body, B.F.from, until);
-  const rows = L.map(p => [p.n, p.b || "—", p.r || "—", p.s || "—", p.d || "—", p.y || "—"]);
+  let body = fillDates(B.F.body, B.F.from, until);
+  if (timingOf(bk()).on) body = body.replace(/full[- ]day attendance/i, "attendance").trim() + " The timing for each student is given in the table below.";
+  const timed = timingOf(bk()).on;
+  const rows = L.map(p => { const r = [p.n, p.b || "—", p.r || "—", p.s || "—", p.d || "—", p.y || "—"]; if (timed) r.push(timeFor(bk(), p).text); return r; });
   let name = (B.F.file || "Attendance Letter").trim(); if (!/\.pdf$/i.test(name)) name += ".pdf";
   try {
     const doc = buildLetter(window.jspdf.jsPDF, (d, o) => d.autoTable(o), { letterhead: await letterhead(), to: B.F.to, subject: B.F.subject, greeting: B.F.greeting, body, note: B.F.note, rows });
@@ -848,7 +856,7 @@ function route() {
   }
   else { book = "trinity"; view = h === "letter" || h === "trinity-letter" ? "letter" : "list"; }
   renderNav(); renderPicker(); renderCounts(); renderAccount();
-  if (view === "letter") { fillFields(); renderTable(); if (book === "quick") { $("qk-year").value = store.get("att3.quick.yearmode", "file"); renderQuickInfo(); } }
+  if (view === "letter") { fillFields(); ticked.clear(); renderTimingControls(); renderTable(); if (book === "quick") { $("qk-year").value = store.get("att3.quick.yearmode", "file"); renderQuickInfo(); } }
   if ((book === "idpt" || book === "ev") && view === "list") { renderIdpt(); if (unlocked()) { loadPending(); loadIdptBin(); } }
 }
 const listHash = () => book === "ev" ? (EV ? "ev-" + EV : "events") : book;

@@ -169,3 +169,11 @@ button.edit:hover{color:var(--fg);border-color:var(--accent)}
 .gate .sheet{max-width:380px}
 .gate .brand{margin-bottom:4px}
 .gate input{font-size:16px}
+/* Timing column */
+.timing{display:grid;gap:12px;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--bg)}
+.switch{display:flex;align-items:center;gap:10px;font-weight:600;cursor:pointer}
+.switch input{width:20px;height:20px;accent-color:var(--accent)}
+.tick{width:18px;height:18px;accent-color:var(--accent)}
+.tbtn{font:12.5px var(--mono);padding:5px 9px;white-space:nowrap;background:transparent;color:var(--muted)}
+.tbtn.own{color:var(--accent);border-color:var(--accent)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
