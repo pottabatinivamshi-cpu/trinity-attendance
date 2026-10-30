@@ -24,8 +24,10 @@ $("gt-form").addEventListener("submit", async e => {
   finally { $("gt-go").disabled = false; }
 });
 $("signout").onclick = () => {
-  askConfirm("Sign out on this phone?", "You'll need the PIN again to open the lists. Letters you haven't downloaded, and today-only people, stay on this phone.", "Sign out", async () => {
-    VIEW = null; auth = null; store.del("att3.view"); store.del("att3.auth"); location.hash = ""; location.reload(); return "";
+  askConfirm("Sign out on this phone?", "You'll need the PIN again to open the lists, and the lists saved for offline use are removed from this phone.", "Sign out", async () => {
+    VIEW = null; auth = null; store.del("att3.view"); store.del("att3.auth");
+    try { Object.keys(localStorage).filter(k => k.startsWith("att3.cache.")).forEach(k => localStorage.removeItem(k)); } catch (e) {}
+    location.hash = ""; location.reload(); return "";
   }, true);
 };
 

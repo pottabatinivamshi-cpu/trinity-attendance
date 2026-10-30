@@ -179,3 +179,4 @@ button.edit:hover{color:var(--fg);border-color:var(--accent)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 #ti-groups .row{align-items:center;background:var(--surface)}
 #ti-groups .ok{flex:none}
+#offline{margin-top:12px}

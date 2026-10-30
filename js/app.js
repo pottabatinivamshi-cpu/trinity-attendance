@@ -64,6 +64,33 @@ let auth = store.get("att3.auth", null);
 // The PIN that lets this phone see the lists (the view PIN, or the core PIN).
 let VIEW = store.get("att3.view", null) || (auth && auth.pin) || null;
 function setView(pin) { VIEW = pin; store.set("att3.view", pin); }
+// ---------- Offline: the last lists this phone loaded, and Records waiting to be sent ----------
+let OFFLINE = false, offlineAt = null;
+const saveCache = (key, data) => store.set("att3.cache." + key, { at: Date.now(), data });
+const readCache = key => store.get("att3.cache." + key, null);
+function wentOffline(at) { OFFLINE = true; offlineAt = offlineAt ? Math.min(offlineAt, at) : at; renderOffline(); }
+function renderOffline() {
+  const box = $("offline"), out = store.get("att3.outbox", []);
+  if (!OFFLINE && !out.length) { box.hidden = true; return; }
+  box.hidden = false;
+  const when = offlineAt ? new Date(offlineAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "";
+  box.textContent = (OFFLINE ? `You're offline. Showing the lists saved on this phone${when ? " at " + when : ""}. Letters still work. Editing and approvals need the internet.` : "") +
+    (out.length ? `${OFFLINE ? " " : ""}${out.length} ${out.length === 1 ? "letter is" : "letters are"} waiting to be saved in Records, and will be sent when you're back online.` : "");
+}
+// Sends one letter at a time and removes it from the queue as soon as it's saved, so nothing is sent twice.
+let flushing = false;
+async function flushOutbox() {
+  if (flushing || !VIEW) return renderOffline();
+  flushing = true; let sent = 0;
+  try {
+    while (true) {
+      const out = store.get("att3.outbox", []); if (!out.length) break;
+      try { await viewRpc("log_letter", out[0]); } catch (e) { break; }
+      store.set("att3.outbox", store.get("att3.outbox", []).slice(1)); sent++;
+    }
+  } finally { flushing = false; renderOffline(); }
+  if (sent) toast(`${sent} ${sent === 1 ? "letter was" : "letters were"} saved in Records.`);
+}
 class PinError extends Error { constructor(status) { super(status); this.pin = status; } }
 async function viewRpc(fn, body) { const r = await rpc(fn, { p_pin: (auth && auth.pin) || VIEW, ...(body || {}) }); if (r.status !== "ok") throw new PinError(r.status); return r; }
 const unlocked = () => MODE === "live" && !!auth;
@@ -98,25 +125,32 @@ function rebuildTrinity() {
   BOOKS.trinity.sel = BOOKS.trinity.sel.filter(id => TMP[id] || (P[id] && P[id].ok && listed.has(id))); saveSel("trinity");
 }
 async function refreshTrinity(quiet) {
-  try { DATA = await loadTrinityLive(); MODE = "live"; }
+  try { DATA = await loadTrinityLive(); MODE = "live"; OFFLINE = false; saveCache("trinity", DATA); renderOffline(); }
   catch (e) {
     if (e.pin) return viewLost(e.pin);
-    if (MODE === "live" && quiet) return;
-    $("depts").innerHTML = `<p class="banner">Couldn't load the member list. Check your connection and reload the page.</p>`; return;
+    if (MODE === "live" && quiet) { wentOffline(Date.now()); return; }
+    const c = readCache("trinity");
+    if (!c) { $("depts").innerHTML = `<p class="banner">Couldn't load the member list. Check your connection and reload the page.</p>`; return; }
+    DATA = c.data; MODE = "cache"; wentOffline(c.at);
   }
   rebuildTrinity(); renderAccount(); renderTrinity(); renderCounts(); if (book === "trinity" && view === "letter") renderTable(); if (unlocked()) loadBin();
 }
 async function loadEvents() {
   try {
-    EVENTS = (await viewRpc("get_events")).events;
+    EVENTS = (await viewRpc("get_events")).events; saveCache("events", EVENTS);
     EVM = Object.fromEntries(EVENTS.map(e => [e.slug, e]));
-  } catch (e) { if (e.pin) viewLost(e.pin); /* otherwise keep what we had */ }
+  } catch (e) {
+    if (e.pin) return viewLost(e.pin);
+    const c = readCache("events"); if (c && !EVENTS.length) { EVENTS = c.data; EVM = Object.fromEntries(EVENTS.map(x => [x.slug, x])); wentOffline(c.at); }
+  }
 }
 async function refreshIdpt(quiet) {
   const slug = EV;
   if (!slug) { IDPT = { ok: true, sections: [], entries: [] }; Q = {}; renderIdpt(); return; }
   try {
-    const res = await viewRpc("get_event", { p_event: slug });
+    let res;
+    try { res = await viewRpc("get_event", { p_event: slug }); saveCache("ev." + slug, res); }
+    catch (e) { if (e.pin) throw e; const c = readCache("ev." + slug); if (!c) throw e; res = c.data; wentOffline(c.at); }
     const secs = res.sections, rows = res.entries;
     if (slug !== EV) return; // switched events while loading
     const entries = rows.map(e => ({ id: e.id, section: e.section, n: e.name, b: e.branch, r: e.roll, s: e.sap, d: e.division, y: e.year, ok: !!(e.sap && e.branch) }));
@@ -742,12 +776,17 @@ $("dl").addEventListener("click", async () => {
     const doc = buildLetter(window.jspdf.jsPDF, (d, o) => d.autoTable(o), { letterhead: await letterhead(), to: B.F.to, subject: B.F.subject, greeting: B.F.greeting, body, note: B.F.note, rows });
     doc.save(name); st.textContent = `Downloaded ${name} with ${L.length} students. Saving it in Records…`;
   } catch (e) { st.textContent = "Couldn't create the file. Reload the page and try again."; return; }
+  const list = book === "quick" ? `Quick letter${quickInfo ? " · " + quickInfo.file : ""}` : book === "trinity" ? "Trinity Team" : evName();
+  const rec = { p_from: B.F.from, p_to: until, p_list: list, p_subject: B.F.subject,
+    p_letter: { to: B.F.to, greeting: B.F.greeting, body, note: B.F.note, file: name }, p_people: rows, p_by: (auth && auth.name) || store.get("att3.lastname", "") };
   try {
-    const list = book === "quick" ? `Quick letter${quickInfo ? " · " + quickInfo.file : ""}` : book === "trinity" ? "Trinity Team" : evName();
-    await viewRpc("log_letter", { p_from: B.F.from, p_to: until, p_list: list, p_subject: B.F.subject,
-      p_letter: { to: B.F.to, greeting: B.F.greeting, body, note: B.F.note, file: name }, p_people: rows, p_by: (auth && auth.name) || store.get("att3.lastname", "") });
+    await viewRpc("log_letter", rec);
     st.textContent = `Downloaded ${name} with ${L.length} students and saved it in Records under ${fmtDate(B.F.from)}.`;
-  } catch (e) { st.textContent = `Downloaded ${name}, but couldn't save it in Records. Check your connection.`; }
+  } catch (e) {
+    if (e.pin) { st.textContent = `Downloaded ${name}, but couldn't save it in Records.`; return; }
+    store.set("att3.outbox", [...store.get("att3.outbox", []), rec]); renderOffline();
+    st.textContent = `Downloaded ${name}. You're offline, so it'll be saved in Records as soon as you're back online.`;
+  }
 });
 
 // ---------- Events tab ----------
@@ -876,7 +915,11 @@ let booted = false;
 function boot() {
   if (booted) return; booted = true; $("gate").hidden = true; document.body.classList.remove("locked");
   refreshTrinity(false); startPolling();
-  (async () => { await loadEvents(); EV = null; route(); if (!EV) setEvent("idpt"); })();
+  (async () => { await loadEvents(); EV = null; route(); if (!EV) setEvent("idpt"); flushOutbox(); })();
+  renderOffline();
 }
 addEventListener("DOMContentLoaded", () => { if (VIEW) boot(); else showGate(); });
+addEventListener("online", () => { if (!booted) return; refreshTrinity(true); loadEvents().then(() => { renderPicker(); refreshIdpt(true); }); flushOutbox(); });
+addEventListener("offline", () => { if (booted) wentOffline(Date.now()); });
+if ("serviceWorker" in navigator && location.protocol !== "file:") addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { loadTmp(); renderTmp(); renderCounts(); } if (booted && document.visibilityState === "visible" && MODE !== "loading" && !openId) { refreshTrinity(true); loadEvents().then(() => { renderPicker(); refreshIdpt(true); }); } });

@@ -34,6 +34,7 @@ The lists hold students' names, roll numbers and SAP IDs, so they aren't public:
 - Everything runs in the browser. The lists live in a free [Supabase](https://supabase.com) database.
 - The PDF is made in the browser with [jsPDF](https://github.com/parallax/jsPDF) and [jsPDF-AutoTable](https://github.com/simonbengtsson/jsPDF-AutoTable), kept in `vendor/`.
 - A GitHub Action pings the database every 3 days so the free project doesn't pause.
+- **Offline mode**: `sw.js` keeps the site's files on the phone, and each phone keeps the last lists it loaded. With no network the site still opens and makes letters; Records saves wait on the phone and are sent when the network is back. Editing and approvals need the internet. Signing out removes the saved lists.
 
 ## Setting up the database (once)
 
