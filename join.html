@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Sign up for a DJS Trinity event.">
+<meta name="theme-color" content="#11141d">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Trinity Event Sign-up</title>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="style.css?v=202610301554">
+<style>
+.wrap{max-width:520px;padding-block:28px 48px}
+.form{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:14px}
+.form .field input,.form .field select{font-size:16px}
+.done{background:var(--surface);border:1px solid var(--accent);border-radius:14px;padding:22px 18px;display:grid;gap:12px;text-align:left}
+.tick{width:52px;height:52px;border-radius:50%;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font:800 28px var(--display)}
+.done h2{font-size:22px}
+.done p{margin:0;color:var(--muted)}
+.summary{border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--bg);display:grid;gap:2px}
+.full{width:100%}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img class="brand" src="logo.png" width="900" height="447" alt="DJSCE Trinity">
+    <div class="eyebrow" id="j-eyebrow"></div>
+    <h1 id="j-title">Sign-up</h1>
+    <p class="sub" id="j-sub">Fill in your details once. Core will check them at the desk and add you to the attendance list.</p>
+  </header>
+
+  <p class="banner" id="msg" role="status" hidden></p>
+
+  <form class="form" id="jf" autocomplete="off" hidden novalidate>
+    <div class="field"><label for="j-name">Full name</label><input id="j-name" type="text" maxlength="80" autocapitalize="words" autocomplete="name"></div>
+    <div class="field"><label for="j-sap">SAP ID</label><input id="j-sap" type="text" inputmode="numeric" maxlength="11" placeholder="11 digits, like 60004250123"></div>
+    <div class="two">
+      <div class="field"><label for="j-branch">Branch</label><select id="j-branch"><option value="">Pick</option><option>COMPS</option><option>IT</option><option>CSE-DS</option><option>CSE-ICB</option><option>AIML</option><option>AIDS</option><option>EXTC</option><option>MECH</option></select></div>
+      <div class="field"><label for="j-year">Year</label><select id="j-year"><option value="">Pick</option><option>FE</option><option>SE</option><option>TE</option><option>BE</option></select></div>
+      <div class="field"><label for="j-roll">Roll No.</label><input id="j-roll" type="text" maxlength="12" autocapitalize="characters" placeholder="Like C062"></div>
+      <div class="field"><label for="j-div">Division</label><input id="j-div" type="text" maxlength="10" autocapitalize="characters" placeholder="Like C1"></div>
+    </div>
+    <div class="field"><label for="j-sec" id="j-sec-label">Sport / event</label><input id="j-sec" type="text" maxlength="40" list="j-secs" autocapitalize="words"><datalist id="j-secs"></datalist></div>
+    <p class="cf-st" id="j-st" role="status"></p>
+    <button type="submit" class="primary full" id="j-go">Sign up</button>
+  </form>
+
+  <section class="done" id="done" hidden>
+    <div class="tick" aria-hidden="true">✓</div>
+    <h2>You're signed up</h2>
+    <div class="summary"><div class="pname" id="d-name"></div><div class="pmeta" id="d-meta"></div></div>
+    <p>Core will approve your name at the desk. You don't need to do anything else.</p>
+    <button type="button" id="again">Sign up someone else</button>
+  </section>
+</div>
+
+<script src="config.js?v=202610301554"></script>
+<script src="js/common.js?v=202610301554"></script>
+<script src="js/join.js?v=202610301554"></script>
+</body>
+</html>

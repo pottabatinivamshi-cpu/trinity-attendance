@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Make DJS Trinity attendance letters for Core, Co-Com, IDPT Sports and any event, or straight from a CSV or Excel file.">
+<meta name="theme-color" content="#11141d">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Trinity Attendance Letters</title>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="style.css?v=202610301554">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <button type="button" class="recbtn" id="rec-btn" aria-current="false">Records</button>
+    <img class="brand" src="logo.png" width="900" height="447" alt="DJSCE Trinity">
+    <h1>Attendance Letters</h1>
+    <p class="sub">Pick people from a list or upload a file, add the subject, and download the letter as a PDF. The letterhead and signatures are the same on every letter.</p>
+    <div class="acct"><span class="whois" id="whois" hidden></span><button type="button" id="login" hidden aria-pressed="false">Core login</button><button type="button" class="rm" id="signout" hidden>Sign out</button></div>
+  </header>
+
+  <nav class="books" aria-label="Lists">
+    <button type="button" data-book="trinity" aria-current="page"><span class="l">Trinity Team</span><span class="badge zero" id="cnt-trinity">0</span></button>
+    <button type="button" data-book="idpt" aria-current="false"><span class="l">IDPT Sports</span><span class="badge zero" id="cnt-idpt">0</span></button>
+    <button type="button" data-book="events" aria-current="false"><span class="l">Events</span></button>
+    <button type="button" data-book="quick" aria-current="false"><span class="l">Quick letter</span></button>
+  </nav>
+
+  <nav class="tabs" role="tablist" id="subtabs">
+    <button class="tab" role="tab" id="tab-people" aria-selected="true" type="button">People</button>
+    <button class="tab" role="tab" id="tab-letter" aria-selected="false" type="button">Letter <span class="badge zero" id="tabcount">0</span></button>
+  </nav>
+
+  <!-- Trinity Team: Core and Co-Com by department -->
+  <section id="view-trinity" class="view">
+    <p class="banner" id="backup" role="status" hidden></p>
+    <section class="manage" id="tmp" hidden>
+      <div class="rowline"><h2>Just for today's letter <span class="pill" id="tmp-count">0</span></h2><button type="button" class="ok" id="tmp-add">Add person</button></div>
+      <p class="empty" style="margin:0">For people who aren't on the Trinity list. They go straight onto the Trinity letter, stay on this phone only, and are cleared at midnight. Nothing is saved to the website.</p>
+      <ul class="rows" id="tmp-list"></ul>
+    </section>
+    <input id="q" class="search" type="search" placeholder="Search a name, roll no. or SAP ID" autocomplete="off" aria-label="Search Trinity Team">
+    <div id="depts" style="display:grid;gap:12px"></div>
+    <section class="manage" id="bin" hidden>
+      <div class="rowline"><h2>Restore bin <span class="pill" id="bin-count">0</span></h2><div class="actions"><button type="button" class="rm" id="bin-refresh">Refresh</button><button type="button" class="rm dangerline" id="bin-empty">Empty bin</button></div></div>
+      <p class="empty" style="margin:0">Deleted names stay here until you restore them. Restoring puts them back in the same department for everyone.</p>
+      <ul id="bin-list"></ul>
+    </section>
+  </section>
+
+  <!-- IDPT Sports and every other event: same list, kept separate from Trinity Team -->
+  <section id="view-idpt" class="view" hidden>
+    <div class="tools" id="ev-picker" hidden>
+      <div class="field" id="ev-field"><label for="ev-select">Event</label><select id="ev-select"></select></div>
+      <p class="empty" id="ev-none" hidden></p>
+      <p class="banner" id="ev-archived" hidden>This event is archived. Its sign-ups are closed and only core can see it.</p>
+      <div class="actions" id="ev-admin" hidden><button type="button" id="ev-new">New event</button><button type="button" id="ev-rename">Rename</button><button type="button" id="ev-archive">Archive</button></div>
+    </div>
+    <div id="ev-body" class="view">
+    <div class="tools" id="idpt-tools" hidden>
+      <div class="rowline"><h2 id="tools-title">Add players</h2><span class="state" id="join-state">QR sign-ups are open</span></div>
+      <div class="actions">
+        <button type="button" id="tool-qr">QR code</button>
+        <button type="button" id="tool-add">Add at the desk</button>
+        <button type="button" id="tool-import">Import CSV / Excel</button>
+      </div>
+    </div>
+    <section class="manage" id="idpt-pending" hidden>
+      <div class="rowline"><h2>Waiting for approval <span class="pill" id="pend-count">0</span></h2>
+        <div class="actions"><button type="button" class="rm" id="pend-refresh">Refresh</button><button type="button" class="ok" id="pend-all" hidden>Approve all</button></div></div>
+      <p class="empty" style="margin:0">People who sign up with the QR code show up here. Only approved names appear on the list and can go on a letter.</p>
+      <ul id="pend-list"></ul>
+    </section>
+    <section class="manage" id="quicksel" hidden>
+      <div class="rowline"><h2>Add a whole group</h2></div>
+      <p class="empty" style="margin:0">Adds everyone in that group from every branch to the letter in one tap.</p>
+      <ul class="rows" id="qs-list"></ul>
+    </section>
+    <input id="qi" class="search" type="search" placeholder="Search a name, roll no. or SAP ID" autocomplete="off" aria-label="Search IDPT Sports">
+    <p class="empty" id="idpt-empty" hidden></p>
+    <div id="idpt-list" style="display:grid;gap:12px"></div>
+    <section class="manage" id="idpt-bin" hidden>
+      <div class="rowline"><h2><span id="ibin-title">IDPT bin</span> <span class="pill" id="ibin-count">0</span></h2><div class="actions"><button type="button" class="rm" id="ibin-refresh">Refresh</button><button type="button" class="rm dangerline" id="ibin-empty">Empty bin</button></div></div>
+      <p class="empty" style="margin:0">Deleted names and rejected sign-ups stay here until you restore them.</p>
+      <ul id="ibin-list"></ul>
+    </section>
+    </div>
+  </section>
+
+  <!-- Records: every downloaded letter, by attendance date (core only) -->
+  <section id="view-records" class="view" hidden>
+    <h2 class="lettertitle">Records</h2>
+    <div class="manage" id="rec-locked" hidden>
+      <p class="empty" style="margin:0">Records are for core. Log in to see which letters were given for which days.</p>
+      <div class="actions"><button type="button" class="primary" id="rec-login">Core login</button></div>
+    </div>
+    <div id="rec-body" class="view" hidden>
+      <p class="empty" style="margin:0">Every letter downloaded from this site is saved here under its attendance date. Search a student to see every day they got attendance.</p>
+      <div class="rowline"><input id="rq" class="search" type="search" placeholder="Search a student, SAP ID or subject" autocomplete="off" aria-label="Search records" style="flex:1 1 220px"><button type="button" class="rm" id="rec-refresh">Refresh</button></div>
+      <p class="pmeta" id="rec-sum" style="margin:0"></p>
+      <div id="rec-list" style="display:grid;gap:18px"></div>
+      <form class="manage" id="vp-form" autocomplete="off">
+        <h2>View PIN</h2>
+        <p class="empty" style="margin:0" id="vp-state"></p>
+        <div class="rowline"><div class="field" style="flex:1 1 200px"><label for="vp-new">New view PIN</label><input id="vp-new" type="password" autocomplete="new-password"></div><button type="submit" class="ok" id="vp-go" style="align-self:end">Set view PIN</button></div>
+        <p class="cf-st" id="vp-st" role="status"></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- Letter: shared by all three, each keeps its own students and text -->
+  <section id="view-letter" class="view" hidden>
+    <h2 class="lettertitle" id="letter-title">Trinity letter</h2>
+
+    <div class="card" id="qk-card" hidden>
+      <h2>Students from a file</h2>
+      <div class="drop" id="qk-drop">
+        <p>Upload a CSV or Excel file with one student per row: name, branch, roll no., SAP ID, division, and year if you have it. A header row is fine. Repeated students are merged.</p>
+        <button type="button" class="primary" id="qk-pick">Choose file</button>
+        <input type="file" id="qk-file" accept=".csv,.xlsx,.xls,.ods,text/csv" hidden>
+        <div class="qkinfo" id="qk-info" hidden></div>
+        <p class="status" id="qk-st" role="status"></p>
+      </div>
+      <div class="field"><label for="qk-year">Year</label>
+        <select id="qk-year">
+          <option value="file">From the file's year column</option>
+          <option value="sap">Guess from the SAP ID</option>
+          <option value="FE">FE for everyone</option><option value="SE">SE for everyone</option>
+          <option value="TE">TE for everyone</option><option value="BE">BE for everyone</option>
+        </select>
+        <span class="hint">The guess reads the admission year in the SAP ID (24 is TE, 25 is SE). Check direct second-year students.</span></div>
+    </div>
+
+    <div class="card">
+      <div class="rowline"><h2>Letter text</h2><button type="button" id="reset" class="rm">Reset to default text</button></div>
+      <div class="field"><label for="f-to">To</label><textarea id="f-to" rows="2"></textarea></div>
+      <div class="two">
+        <div class="field"><label for="f-from">Attendance from</label><input id="f-from" type="date"></div>
+        <div class="field"><label for="f-until">To (if more than one day)</label><input id="f-until" type="date"></div>
+      </div>
+      <span class="hint" style="margin-top:-6px">The dates fill in the "from ___ to ___" in the body, and the letter is saved in Records under them.</span>
+      <div class="field"><label for="f-subject">Subject</label><textarea id="f-subject" rows="3"></textarea><span class="hint">"SUBJECT:" is added in front automatically.</span></div>
+      <div class="field"><label for="f-greeting">Greeting</label><input id="f-greeting" type="text"></div>
+      <div class="field"><label for="f-body">Body</label><textarea id="f-body" rows="4"></textarea></div>
+      <div class="field"><label for="f-note">Note</label><textarea id="f-note" rows="3"></textarea><span class="hint">Printed in bold after "NOTE:". Leave it empty to skip it.</span></div>
+    </div>
+
+    <div class="card">
+      <div class="rowline"><h2 id="tabletitle">Students in the table</h2>
+        <div class="actions"><button type="button" id="clear" class="rm">Clear all</button></div></div>
+      <div id="clearconfirm" class="confirm" hidden>Remove everyone from the table?
+        <button type="button" id="clearyes" class="rm">Remove all</button><button type="button" id="clearno" class="rm">Keep them</button></div>
+      <div class="field"><label for="f-order">Order in the table</label><select id="f-order"></select></div>
+      <div id="tablewrap"></div>
+    </div>
+
+    <div class="card">
+      <h2>Fixed on every letter</h2>
+      <img class="lh" id="lhimg" alt="DJSCE Trinity '27 letterhead">
+      <div class="fixed">
+        <div><b>Left signature</b>DJS Trinity · Top Core</div>
+        <div><b>Right signature</b>DJS Trinity · (Convener) (Co-Convener)</div>
+      </div>
+      <div class="field"><label for="f-file">File name</label><input id="f-file" type="text"></div>
+      <div class="actions"><button type="button" class="primary" id="dl">Download letter PDF</button></div>
+      <p class="status" id="st" role="status"></p>
+    </div>
+  </section>
+</div>
+
+<!-- Delete confirmation -->
+<div class="overlay" id="confirm" hidden>
+  <div class="sheet" role="alertdialog" aria-modal="true" aria-labelledby="cf-title" aria-describedby="cf-note">
+    <h2 id="cf-title">Delete this name?</h2>
+    <div class="who"><div class="pname" id="cf-name"></div><div class="pmeta" id="cf-meta"></div></div>
+    <div class="from">From <b id="cf-from"></b></div>
+    <p id="cf-note"></p>
+    <p class="cf-st" id="cf-st" role="status"></p>
+    <div class="btns"><button type="button" id="cf-cancel" data-close>Cancel</button><button type="button" class="danger" id="cf-delete">Delete</button></div>
+  </div>
+</div>
+
+<!-- Core login -->
+<div class="overlay" id="loginsheet" hidden>
+  <form class="sheet" id="lg-form" role="dialog" aria-modal="true" aria-labelledby="lg-title" autocomplete="off">
+    <h2 id="lg-title">Core login</h2>
+    <p>Enter the core PIN to edit the lists. Everyone else can still make letters without it.</p>
+    <div class="field"><label for="lg-pin">PIN</label><input id="lg-pin" type="password" autocomplete="current-password"></div>
+    <div class="field"><label for="lg-name">Your name</label><input id="lg-name" type="text" maxlength="60" placeholder="Shown in the bin next to what you delete"></div>
+    <p class="cf-st" id="lg-st" role="status"></p>
+    <div class="btns"><button type="button" id="lg-cancel">Cancel</button><button type="submit" class="primary" id="lg-go">Unlock</button></div>
+  </form>
+</div>
+
+<!-- IDPT: add at the desk -->
+<div class="overlay" id="addsheet" hidden>
+  <form class="sheet" id="ad-form" role="dialog" aria-modal="true" aria-labelledby="ad-title" autocomplete="off">
+    <h2 id="ad-title">Add a player</h2>
+    <p id="ad-help">They go straight onto the list. Branch and year fill in from the SAP ID.</p>
+    <div class="field"><label for="ad-name">Name</label><input id="ad-name" type="text" maxlength="80" autocapitalize="words"></div>
+    <div class="field"><label for="ad-sap">SAP ID</label><input id="ad-sap" type="text" inputmode="numeric" maxlength="11" placeholder="11 digits"></div>
+    <div class="two">
+      <div class="field"><label for="ad-branch">Branch</label><select id="ad-branch"><option value="">Pick</option><option>COMPS</option><option>IT</option><option>CSE-DS</option><option>CSE-ICB</option><option>AIML</option><option>AIDS</option><option>EXTC</option><option>MECH</option></select></div>
+      <div class="field"><label for="ad-year">Year</label><select id="ad-year"><option value="">Pick</option><option>FE</option><option>SE</option><option>TE</option><option>BE</option></select></div>
+      <div class="field"><label for="ad-roll">Roll No.</label><input id="ad-roll" type="text" maxlength="12" autocapitalize="characters"></div>
+      <div class="field"><label for="ad-div">Division</label><input id="ad-div" type="text" maxlength="10" autocapitalize="characters"></div>
+    </div>
+    <div class="field"><label for="ad-sec" id="ad-sec-label">Sport / event</label><input id="ad-sec" type="text" maxlength="40" list="sec-list" autocapitalize="words"></div>
+    <p class="cf-st" id="ad-st" role="status"></p>
+    <div class="btns"><button type="button" data-close>Close</button><button type="submit" class="primary" id="ad-go">Add player</button></div>
+  </form>
+</div>
+<datalist id="sec-list"></datalist>
+
+<!-- IDPT: import -->
+<div class="overlay" id="importsheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="im-title">
+    <h2 id="im-title">Import players</h2>
+    <p>Use the same layout as the Core and Co-Com sheets: one person per row, with an optional heading row in capitals (like CRICKET or TEAM A) to group them. People already on the list are skipped.</p>
+    <div class="field"><label for="im-default">Section for rows before any heading</label><input id="im-default" type="text" value="IDPT" maxlength="40"></div>
+    <button type="button" class="primary" id="im-pick">Choose file</button>
+    <input type="file" id="im-file" accept=".csv,.xlsx,.xls,.ods,text/csv" hidden>
+    <div id="im-sum" class="qkinfo"></div>
+    <p class="cf-st" id="im-st" role="status"></p>
+    <div class="btns"><button type="button" data-close>Cancel</button><button type="button" class="primary" id="im-go" disabled>Import</button></div>
+  </div>
+</div>
+
+<!-- IDPT: QR code -->
+<div class="overlay" id="qrsheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="qr-title">
+    <h2 id="qr-title">QR sign-up</h2>
+    <p>People scan this and fill in their own details. Their names wait under Waiting for approval until core approves them.</p>
+    <div class="qrbox"><canvas id="qr-canvas" aria-label="QR code for the sign-up page"></canvas></div>
+    <div class="url" id="qr-url"></div>
+    <div class="actions"><button type="button" id="qr-copy">Copy link</button><button type="button" id="qr-save">Download QR</button><button type="button" id="qr-toggle">Close sign-ups</button></div>
+    <p class="cf-st" id="qr-st" role="status"></p>
+    <div class="btns"><button type="button" data-close>Done</button></div>
+  </div>
+</div>
+
+<!-- Events: new / rename -->
+<div class="overlay" id="evsheet" hidden>
+  <form class="sheet" id="ev-form" role="dialog" aria-modal="true" aria-labelledby="ev-sheet-title" autocomplete="off">
+    <h2 id="ev-sheet-title">New event</h2>
+    <p id="ev-help"></p>
+    <div class="field"><label for="ev-name">Event name</label><input id="ev-name" type="text" maxlength="60" autocapitalize="words" placeholder="Like Hackathon 2027 or Treasure Hunt"></div>
+    <p class="cf-st" id="ev-st" role="status"></p>
+    <div class="btns"><button type="button" data-close>Cancel</button><button type="submit" class="primary" id="ev-go">Create event</button></div>
+  </form>
+</div>
+
+<!-- View PIN gate -->
+<div class="gate" id="gate" hidden>
+  <form class="sheet" id="gt-form" autocomplete="off" aria-labelledby="gt-title">
+    <img class="brand" src="logo.png" width="900" height="447" alt="DJSCE Trinity">
+    <h2 id="gt-title">Enter the PIN</h2>
+    <p>The lists have students' details, so this site needs a PIN. Ask a core member for it.</p>
+    <div class="field"><label for="gt-pin">PIN</label><input id="gt-pin" type="password" autocomplete="current-password"></div>
+    <p class="cf-st" id="gt-st" role="status"></p>
+    <button type="submit" class="primary" id="gt-go">Open</button>
+  </form>
+</div>
+
+<!-- Edit someone's details (core) -->
+<div class="overlay" id="edsheet" hidden>
+  <form class="sheet" id="ed-form" role="dialog" aria-modal="true" aria-labelledby="ed-title" autocomplete="off">
+    <h2 id="ed-title">Edit details</h2>
+    <p id="ed-note"></p>
+    <div class="field"><label for="ed-name">Name</label><input id="ed-name" type="text" maxlength="80" autocapitalize="words"></div>
+    <div class="field"><label for="ed-sap">SAP ID</label><input id="ed-sap" type="text" inputmode="numeric" maxlength="11" placeholder="11 digits"></div>
+    <div class="two">
+      <div class="field"><label for="ed-branch">Branch</label><select id="ed-branch"><option value="">Pick</option><option>COMPS</option><option>IT</option><option>CSE-DS</option><option>CSE-ICB</option><option>AIML</option><option>AIDS</option><option>EXTC</option><option>MECH</option></select></div>
+      <div class="field"><label for="ed-year">Year</label><select id="ed-year"><option value="">Pick</option><option>FE</option><option>SE</option><option>TE</option><option>BE</option></select></div>
+      <div class="field"><label for="ed-roll">Roll No.</label><input id="ed-roll" type="text" maxlength="12" autocapitalize="characters"></div>
+      <div class="field"><label for="ed-div">Division</label><input id="ed-div" type="text" maxlength="10" autocapitalize="characters"></div>
+    </div>
+    <div class="field" id="ed-sec-wrap"><label for="ed-sec" id="ed-sec-label">Sport / event</label><input id="ed-sec" type="text" maxlength="40" list="sec-list" autocapitalize="words"></div>
+    <p class="cf-st" id="ed-st" role="status"></p>
+    <div class="btns"><button type="button" data-close>Cancel</button><button type="submit" class="primary" id="ed-go">Save</button></div>
+  </form>
+</div>
+
+<!-- Generic confirmation for things that can't be undone -->
+<div class="overlay" id="asksheet" hidden>
+  <div class="sheet" role="alertdialog" aria-modal="true" aria-labelledby="ask-title" aria-describedby="ask-body">
+    <h2 id="ask-title"></h2>
+    <p id="ask-body"></p>
+    <p class="cf-st" id="ask-st" role="status"></p>
+    <div class="btns"><button type="button" id="ask-cancel" data-close>Cancel</button><button type="button" class="danger" id="ask-go">Delete forever</button></div>
+  </div>
+</div>
+
+<!-- Trinity: someone just for today's letter -->
+<div class="overlay" id="tmpsheet" hidden>
+  <form class="sheet" id="tm-form" role="dialog" aria-modal="true" aria-labelledby="tm-title" autocomplete="off">
+    <h2 id="tm-title">Add for today's letter</h2>
+    <p>Saved on this phone only and cleared at midnight. Branch and year fill in from the SAP ID.</p>
+    <div class="field"><label for="tm-name">Name</label><input id="tm-name" type="text" maxlength="80" autocapitalize="words"></div>
+    <div class="field"><label for="tm-sap">SAP ID</label><input id="tm-sap" type="text" inputmode="numeric" maxlength="11" placeholder="11 digits"></div>
+    <div class="two">
+      <div class="field"><label for="tm-branch">Branch</label><select id="tm-branch"><option value="">Pick</option><option>COMPS</option><option>IT</option><option>CSE-DS</option><option>CSE-ICB</option><option>AIML</option><option>AIDS</option><option>EXTC</option><option>MECH</option></select></div>
+      <div class="field"><label for="tm-year">Year</label><select id="tm-year"><option value="">Pick</option><option>FE</option><option>SE</option><option>TE</option><option>BE</option></select></div>
+      <div class="field"><label for="tm-roll">Roll No.</label><input id="tm-roll" type="text" maxlength="12" autocapitalize="characters"></div>
+      <div class="field"><label for="tm-div">Division</label><input id="tm-div" type="text" maxlength="10" autocapitalize="characters"></div>
+    </div>
+    <p class="cf-st" id="tm-st" role="status"></p>
+    <div class="btns"><button type="button" data-close>Close</button><button type="submit" class="primary" id="tm-go">Add to letter</button></div>
+  </form>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+<div class="bar" id="bar">
+  <div class="bar-in"><span class="bar-count"><b id="barn">0</b> on the <span id="barbook">Trinity</span> letter</span><button type="button" class="primary" id="golet">Open letter</button></div>
+</div>
+
+<script src="config.js?v=202610301554"></script>
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="vendor/jspdf.plugin.autotable.min.js"></script>
+<script src="vendor/qrcode.js"></script>
+<script src="js/common.js?v=202610301554"></script>
+<script src="js/letter.js?v=202610301554"></script>
+<script src="js/app.js?v=202610301554"></script>
+<script src="js/records.js?v=202610301554"></script>
+</body>
+</html>
