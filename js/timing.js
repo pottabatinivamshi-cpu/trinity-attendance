@@ -21,6 +21,28 @@ function timeFor(k, p) {
   return { text: slotLabel(T.from, T.to), own: false };
 }
 
+// Which group a student came from: their department on Trinity Team, their group on IDPT and events.
+function groupOf(k, p) {
+  if (k === "quick") return null;
+  if (k === "trinity") return store.get(BOOKS.trinity.fKey + "origin", {})[p.id] || (p.tmp ? "Added by hand" : "Other");
+  return p.section || "Other";
+}
+function renderTimingGroups() {
+  const k = bk(), T = timingOf(k), rows = orderedRows(k), groups = new Map();
+  rows.forEach(p => { const g = groupOf(k, p); if (!g) return; if (!groups.has(g)) groups.set(g, []); groups.get(g).push(p); });
+  $("ti-groups-wrap").hidden = !T.on || groups.size < 1 || k === "quick";
+  $("ti-groups").innerHTML = [...groups].map(([g, ps]) => {
+    const labels = [...new Set(ps.map(p => timeFor(k, p).text))];
+    const own = ps.some(p => timeFor(k, p).own);
+    return `<li class="row"><div class="pinfo"><div class="pname">${esc(g)}</div><div class="pmeta">${ps.length} ${ps.length === 1 ? "student" : "students"} · ${labels.length === 1 ? esc(labels[0]) + (own ? "" : " (everyone's timing)") : "mixed timings"}</div></div>` +
+      `<button type="button" class="ok" data-tgroup="${esc(g)}">Set timing</button></li>`;
+  }).join("");
+}
+$("ti-groups").addEventListener("click", e => {
+  const b = e.target.closest("[data-tgroup]"); if (!b) return; const k = bk();
+  const ids = orderedRows(k).filter(p => groupOf(k, p) === b.dataset.tgroup).map(p => p.id);
+  openTiming(ids, `Timing for ${b.dataset.tgroup}`);
+});
 let ticked = new Set();
 function renderTimingControls() {
   const k = bk(), T = timingOf(k);
@@ -30,21 +52,23 @@ function renderTimingControls() {
   const live = new Set(orderedRows(k).map(p => p.id)); ticked = new Set([...ticked].filter(id => live.has(id)));
   $("ti-sel").disabled = !ticked.size;
   $("ti-sel").textContent = ticked.size ? `Set timing for ${ticked.size} selected` : "Tick students to set their timing together";
+  renderTimingGroups();
 }
 $("f-timing").addEventListener("change", e => { const T = timingOf(bk()); T.on = e.target.checked; saveTiming(bk()); ticked.clear(); renderTimingControls(); renderTable(); });
 $("ti-from").addEventListener("change", e => {
   const T = timingOf(bk()); T.from = e.target.value; if (T.to <= T.from) T.to = SLOTS[Math.min(SLOTS.indexOf(T.from) + 1, SLOTS.length - 1)];
   saveTiming(bk()); renderTimingControls(); renderTable();
 });
-$("ti-to").addEventListener("change", e => { const T = timingOf(bk()); T.to = e.target.value; saveTiming(bk()); renderTable(); });
+$("ti-to").addEventListener("change", e => { const T = timingOf(bk()); T.to = e.target.value; saveTiming(bk()); renderTable(); renderTimingGroups(); });
 $("ti-reset").onclick = () => { const T = timingOf(bk()); T.times = {}; saveTiming(bk()); ticked.clear(); renderTimingControls(); renderTable(); toast("Everyone is back on the default timing."); };
 
 // Per-student (or ticked group) timing sheet
 let tiTarget = [];
-function openTiming(ids) {
+function openTiming(ids, title) {
   const k = bk(), T = timingOf(k); tiTarget = ids;
   const people = orderedRows(k).filter(p => ids.includes(p.id));
-  $("ti-title").textContent = people.length === 1 ? `Timing for ${people[0].n}` : `Timing for ${people.length} students`;
+  $("ti-title").textContent = title || (people.length === 1 ? `Timing for ${people[0].n}` : `Timing for ${people.length} students`);
+  $("ti-who").textContent = people.length > 1 ? `${people.length} students: ${people.slice(0, 4).map(p => p.n).join(", ")}${people.length > 4 ? ` and ${people.length - 4} more` : ""}` : "";
   const own = people.length === 1 ? T.times[people[0].id] : null;
   const f = own && own.f ? own.f : T.from, t = own && own.f ? own.t : T.to;
   fillSlots($("ti-s-from")); $("ti-s-from").value = f; fillSlots($("ti-s-to"), f); $("ti-s-to").value = t;

@@ -200,8 +200,10 @@ function selAllBtn(k, ids) {
   if (!addable.length) return "";
   return `<button type="button" class="selall" data-act="all">${addable.every(id => inBook(k, id)) ? "Remove all" : "Select all"}</button>`;
 }
-function toggleIds(k, ids, one) {
+// origin: which department someone was added from, so the Timing box can set a whole department at once.
+function toggleIds(k, ids, one, origin) {
   const B = BOOKS[k];
+  if (origin) { const O = store.get(B.fKey + "origin", {}); ids.forEach(id => { if (!inBook(k, id)) O[id] = origin; }); store.set(B.fKey + "origin", O); }
   if (one) B.sel = inBook(k, ids[0]) ? B.sel.filter(x => x !== ids[0]) : [...B.sel, ids[0]];
   else { const add = ids.filter(id => person(k, id) && person(k, id).ok); if (add.every(id => inBook(k, id))) B.sel = B.sel.filter(x => !add.includes(x)); else add.forEach(id => { if (!inBook(k, id)) B.sel.push(id); }); }
   saveSel(k); renderCounts();
@@ -287,7 +289,7 @@ $("depts").addEventListener("click", e => {
   const g = b.closest(".group"), d = DEPTS.find(x => x.name === g.dataset.dept);
   if (b.dataset.act === "del") return askDelete({ kind: "trinity", dept: d.name, grp: g.dataset.g, id: b.closest(".row").dataset.id });
   if (b.dataset.act === "edit") return openEdit("trinity", b.closest(".row").dataset.id);
-  toggleIds("trinity", b.dataset.act === "one" ? [b.closest(".row").dataset.id] : d[g.dataset.g], b.dataset.act === "one");
+  toggleIds("trinity", b.dataset.act === "one" ? [b.closest(".row").dataset.id] : d[g.dataset.g], b.dataset.act === "one", d.name);
 });
 trackOpen($("depts"), $("q"), open, "att2.open");
 $("q").addEventListener("input", () => applySearch($("q"), $("depts"), open));
@@ -677,6 +679,7 @@ function orderedRows(k) {
   return sortByYearBranch(L);
 }
 function renderTable() {
+  if (window.renderTimingGroups) renderTimingGroups();
   const L = orderedRows(bk());
   $("tabletitle").textContent = `Students in the table (${L.length})`;
   $("clear").disabled = !L.length;

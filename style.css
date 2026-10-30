@@ -177,3 +177,5 @@ button.edit:hover{color:var(--fg);border-color:var(--accent)}
 .tbtn{font:12.5px var(--mono);padding:5px 9px;white-space:nowrap;background:transparent;color:var(--muted)}
 .tbtn.own{color:var(--accent);border-color:var(--accent)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+#ti-groups .row{align-items:center;background:var(--surface)}
+#ti-groups .ok{flex:none}
